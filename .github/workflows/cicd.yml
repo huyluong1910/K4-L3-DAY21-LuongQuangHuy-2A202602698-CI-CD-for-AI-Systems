@@ -59,8 +59,8 @@ jobs:
           import json, os
           creds = json.loads(os.environ['STORAGE_CREDENTIALS'])
           with open(os.environ['GITHUB_ENV'], 'a') as f:
-              f.write(f"AWS_ACCESS_KEY_ID={creds['aws_access_key_id']}\n")
-              f.write(f"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key']}\n")
+              f.write(f"AWS_ACCESS_KEY_ID={creds['aws_access_key_id'].strip()}\n")
+              f.write(f"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key'].strip()}\n")
               f.write("AWS_REGION=ap-southeast-2\n")
               f.write("AWS_DEFAULT_REGION=ap-southeast-2\n")
           PYEOF
@@ -82,15 +82,20 @@ jobs:
       - name: Upload model to Cloud Storage
         run: |
           python - <<'PYEOF'
-          import os
-          import boto3
-          bucket = os.environ['ARTIFACT_BUCKET']
-          region = os.environ.get('AWS_REGION', 'ap-southeast-2')
-          s3 = boto3.client('s3', region_name=region)
+          import os, json, boto3
+          creds = json.loads(os.environ['STORAGE_CREDENTIALS'])
+          bucket = os.environ['ARTIFACT_BUCKET'].replace('s3://', '').replace('gs://', '').strip().rstrip('/')
+          s3 = boto3.client(
+              's3',
+              aws_access_key_id=creds['aws_access_key_id'].strip(),
+              aws_secret_access_key=creds['aws_secret_access_key'].strip(),
+              region_name='ap-southeast-2',
+          )
           s3.upload_file("models/model.joblib", bucket, "artifacts/current/model.joblib")
           print(f"Uploaded models/model.joblib to s3://{bucket}/artifacts/current/model.joblib")
           PYEOF
         env:
+          STORAGE_CREDENTIALS: ${{ secrets.STORAGE_CREDENTIALS }}
           ARTIFACT_BUCKET: ${{ secrets.ARTIFACT_BUCKET }}
 
       - name: Save report as artifact
