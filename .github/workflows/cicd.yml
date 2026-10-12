@@ -61,6 +61,7 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as f:
               f.write(f"AWS_ACCESS_KEY_ID={creds['aws_access_key_id']}\n")
               f.write(f"AWS_SECRET_ACCESS_KEY={creds['aws_secret_access_key']}\n")
+              f.write("AWS_REGION=ap-southeast-2\n")
               f.write("AWS_DEFAULT_REGION=ap-southeast-2\n")
           PYEOF
         env:
@@ -84,7 +85,8 @@ jobs:
           import os
           import boto3
           bucket = os.environ['ARTIFACT_BUCKET']
-          s3 = boto3.client('s3')
+          region = os.environ.get('AWS_REGION', 'ap-southeast-2')
+          s3 = boto3.client('s3', region_name=region)
           s3.upload_file("models/model.joblib", bucket, "artifacts/current/model.joblib")
           print(f"Uploaded models/model.joblib to s3://{bucket}/artifacts/current/model.joblib")
           PYEOF
