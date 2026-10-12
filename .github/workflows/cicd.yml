@@ -136,11 +136,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+      - name: Prepare SSH connection parameters
+        id: prep_ssh
+        run: |
+          RAW_USER="${{ secrets.SERVER_USER }}"
+          RAW_HOST="${{ secrets.SERVER_HOST }}"
+          CLEAN_USER=$(echo "$RAW_USER" | tr -d '[:space:]')
+          CLEAN_HOST=$(echo "$RAW_HOST" | tr -d '[:space:]')
+          echo "user=${CLEAN_USER:-ubuntu}" >> $GITHUB_OUTPUT
+          echo "host=$CLEAN_HOST" >> $GITHUB_OUTPUT
+
       - name: SSH deploy to VM
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ steps.prep_ssh.outputs.host }}
+          username: ${{ steps.prep_ssh.outputs.user }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             sudo systemctl restart income-api
